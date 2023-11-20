@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import TopBar from './components/TopBar.vue';
 </script>
 
 <template>
-	<div class="w-full h-14 bg-gradient-to-r from-green-600 via-blue-500 to-blue-800 shadow-md">
-
+	<TopBar></TopBar>
+	<div class="max-w-7xl mx-auto py-5">
+		<router-view></router-view>
 	</div>
 </template>
