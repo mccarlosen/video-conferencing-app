@@ -1,1 +1,7 @@
 @import './base.css';
+.top-bar {
+	@apply max-w-7xl mx-auto text-white;
+}
+.top-bar .app-name {
+	@apply text-xl font-bold;
+}
