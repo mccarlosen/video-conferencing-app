@@ -1,12 +1,12 @@
 <template>
-	<div class="w-full bg-black shadow-md">
-		<div class="top-bar">
-			<div class="w-full flex justify-between py-2">
+	<div class="flex items-center w-full h-[70px] bg-black shadow-md">
+		<div class="w-full max-w-7xl mx-auto text-white">
+			<div class="flex items-center justify-between">
 				<div class="flex items-center space-x-4">
-					<div class="p-2 max-w-max">
+					<div class="max-w-max">
 						<img src="../assets/logo.png" class="w-10" alt="Logo">
 					</div>
-					<div class="app-name">Video Conferencing App</div>
+					<div class="text-xl font-bold">Video Conferencing App</div>
 				</div>
 				<div class="flex items-center space-x-4">
 					<a href="https://github.com/mccarlosen">
