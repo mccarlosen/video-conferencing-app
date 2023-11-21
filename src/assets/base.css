@@ -5,4 +5,8 @@
 
 html, body {
 	font-family: 'Lexend Deca', sans-serif;
+	@apply h-full relative;
+}
+#app {
+	@apply min-h-screen;
 }
