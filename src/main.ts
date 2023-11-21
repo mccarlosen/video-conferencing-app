@@ -1,6 +1,6 @@
 import './assets/main.css'
 
-import { createApp, defineAsyncComponent } from 'vue'
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
