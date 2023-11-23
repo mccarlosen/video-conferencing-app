@@ -1,7 +1,6 @@
 import type { MeetingConfig } from '@/types/meeting-config.type'
 import type { IMeetingService } from '@/services/meeting.interface'
 import axios, { type AxiosStatic } from 'axios'
-import type { VueCookies } from 'vue-cookies'
 
 class MeetingService implements IMeetingService {
   BASE_URL: string = 'http://127.0.0.1:3333/api'
