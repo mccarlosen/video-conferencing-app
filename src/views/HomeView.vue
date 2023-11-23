@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, type Ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import { useMeetingStore } from '@/stores/meeting';
 import FormCreateMeeting from '@/components/FormCreateMeeting.vue';
 
@@ -8,10 +8,6 @@ const currentTab: Ref<string> = ref('tab1')
 const setCurrentTab = (tab: string) => {
 	currentTab.value = tab
 }
-
-onMounted(() => {
-	console.log(meetingStore.meeting)
-})
 </script>
 
 <template>
@@ -21,9 +17,6 @@ onMounted(() => {
 			<p class="text-lg font-light text-gray-700">This is a demo that uses the <a href="https://www.eyeson.com/eyeson-video-call-api-overview" target="_blank" class="underline text-c1-600 transition duration-150 ease-in-out hover:text-c1-500">Eyeson API</a></p>
 		</div>
 		<div class="w-1/2">
-			<div v-if="meetingStore.meeting">
-				Hello, {{ meetingStore.meeting.user.name }}
-			</div>
 			<div v-if="!meetingStore.meeting">
 				<ul class="flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200">
 					<li class="me-2">
