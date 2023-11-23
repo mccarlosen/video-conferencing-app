@@ -26,7 +26,6 @@ const submitForm = async () => {
   }
   const config = { userName: userName.value, roomName: roomName.value }
   try {
-    // XZim5U3QlkPgaDjXln3fr332kKU9lBeRFSin0XcSio
     sendingForm.value = true
     const meetingStore = useMeetingStore()
     await meetingStore.createMeeting(config)
