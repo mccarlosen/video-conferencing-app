@@ -9,9 +9,7 @@ export const useMeetingStore = defineStore('meeting', () => {
   const meeting: Ref<Meeting | undefined> = ref(undefined)
   const connected: Ref<boolean> = ref(false)
   const inPreview: Ref<boolean> = ref(true)
-  // connected: false,
-  //     inPreview: true,
-  //     mediaOptions: { audio: true, video: true }
+  const mediaOptions: Ref<object> = ref({ audio: true, video: true })
 
   async function createMeeting (config: MeetingConfig) {
     try {
