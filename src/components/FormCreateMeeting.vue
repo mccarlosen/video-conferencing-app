@@ -2,7 +2,7 @@
 import { ref, type Ref, computed } from 'vue';
 import { useVuelidate } from '@vuelidate/core'
 import { required, maxLength } from '@vuelidate/validators'
-import { useGlobalStore } from '@/stores/global';
+import { useMeetingStore } from '@/stores/meeting';
 
 const sendingForm: Ref<boolean> = ref(false)
 const userName: Ref<string> = ref('')
@@ -28,8 +28,8 @@ const submitForm = async () => {
   try {
     // XZim5U3QlkPgaDjXln3fr332kKU9lBeRFSin0XcSio
     sendingForm.value = true
-    const globalStore = useGlobalStore()
-    await globalStore.createMeeting(config)
+    const meetingStore = useMeetingStore()
+    await meetingStore.createMeeting(config)
     sendingForm.value = false
   } catch (e) {
     console.log(e);
