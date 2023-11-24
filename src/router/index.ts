@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, useRouter } from 'vue-router'
+import { useMeetingService } from '@/composables/meeting'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,7 +12,17 @@ const router = createRouter({
     {
       path: '/meeting/:id',
       name: 'meeting',
-      component: () => import('../views/Meeting.vue')
+      component: () => import('../views/MeetingView.vue'),
+      /* beforeEnter: (to) => {
+        const router = useRouter()
+        const useMeeting = useMeetingService()
+        const id = to.params.id
+        const { status } = useMeeting.checkAccessKey(id)
+        if (status.value !== 200) {
+          router.push({ name: 'home' })
+          return false;
+        }
+      } */
     }
   ]
 })
