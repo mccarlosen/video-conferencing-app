@@ -5,11 +5,8 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
-import { meetingService } from './services/meeting.service'
-import type { IMeetingService } from './services/meeting.interface'
 
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
-app.provide<IMeetingService>('meetingService', meetingService)
 app.mount('#app')
