@@ -3,7 +3,9 @@ import { ref, type Ref, computed } from 'vue';
 import { useVuelidate } from '@vuelidate/core'
 import { required, maxLength } from '@vuelidate/validators'
 import { useMeetingStore } from '@/stores/meeting';
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const sendingForm: Ref<boolean> = ref(false)
 const userName: Ref<string> = ref('')
 const roomName: Ref<string> = ref('')
@@ -30,6 +32,7 @@ const submitForm = async () => {
     const meetingStore = useMeetingStore()
     await meetingStore.createMeeting(config)
     sendingForm.value = false
+    router.push({ name: 'meeting', params: { id: meetingStore.meeting?.access_key } })
   } catch (e) {
     console.log(e);
   }
