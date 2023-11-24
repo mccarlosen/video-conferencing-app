@@ -89,3 +89,8 @@ export interface User {
     blocked: boolean;
     ready:   boolean;
 }
+
+export type MediaOptionsType = {
+    value: string
+    label: string
+}
