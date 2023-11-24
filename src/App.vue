@@ -4,7 +4,9 @@ import TopBar from './components/TopBar.vue';
 
 <template>
 	<TopBar></TopBar>
-	<div class="max-w-7xl mx-auto h-[calc(100vh_-70px)]">
-		<router-view></router-view>
+	<div class="w-full overflow-y-auto overflow-x-hidden pt-[70px]">
+		<div class="max-w-7xl mx-auto h-[calc(100vh_-70px)]">
+			<router-view></router-view>
+		</div>
 	</div>
 </template>
