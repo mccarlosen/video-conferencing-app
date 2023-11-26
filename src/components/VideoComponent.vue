@@ -1,31 +1,34 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onMounted, onUpdated, ref, type Ref } from 'vue';
 
 const props = defineProps<{
 	muted?: boolean
 	stream?: any
 }>()
-const videoTarget: any = ref(null)
+const video: any = ref(null)
 const playPromise = ref(Promise.resolve())
 const errorVideo = () => console.log('Enable to play video')
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 onMounted(() => {
 	const { stream } = props
-	if (stream && videoTarget.value && !videoTarget.value.srcObject) {
-		console.log(stream, videoTarget.value);
+	if (stream && video.value && !video.value.srcObject) {
 		playPromise.value = playPromise.value.then(() => {
-			videoTarget.value.srcObject = stream;
-			return Promise.race([videoTarget.value.play().catch(errorVideo), sleep(150)]);
+			video.value.srcObject = stream;
+			return Promise.race([video.value.play().catch(errorVideo), sleep(150)]);
 		});
 	}
 })
-onBeforeUnmount(() => {
-	if (videoTarget.value) {
-		videoTarget.value.srcObject = null
+onUpdated(() => {
+	const { stream } = props
+	if (stream && video.value && (!video.value.srcObject || stream)) {
+		playPromise.value = playPromise.value.then(() => {
+			video.value.srcObject = stream;
+			return Promise.race([video.value.play().catch(errorVideo), sleep(150)]);
+		});
 	}
 })
 </script>
 
 <template>
-	<video class="w-full rounded" ref="videoTarget" :muted="props.muted" playsInline />
+	<video class="w-full h-[256px] rounded" ref="video" :muted="props.muted" playsInline />
 </template>
