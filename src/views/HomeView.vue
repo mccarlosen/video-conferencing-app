@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, type Ref } from 'vue';
+import { watch, ref, type Ref } from 'vue';
 import { useMeetingStore } from '@/stores/meeting';
 import FormCreateMeeting from '@/components/FormCreateMeeting.vue';
 import FormWithAccessKey from '@/components/FormWithAccessKey.vue';
@@ -9,6 +9,9 @@ const currentTab: Ref<string> = ref('tab1')
 const setCurrentTab = (tab: string) => {
 	currentTab.value = tab
 }
+watch(currentTab, () => {
+	meetingStore.errorFormMessage = ''
+})
 </script>
 
 <template>
