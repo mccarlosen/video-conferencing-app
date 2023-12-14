@@ -7,19 +7,30 @@ import { useMeetingService } from '@/composables/meeting'
 export const useMeetingStore = defineStore('meeting', () => {
   const useMeeting = useMeetingService()
   const meeting: Ref<Meeting | undefined> = ref(undefined)
+  const loading: Ref<boolean> = ref(false)
   const connected: Ref<boolean> = ref(false)
   const inPreview: Ref<boolean> = ref(true)
-  const mediaOptions: Ref<object> = ref({ audio: true, video: true })
+  const mediaOptions: Ref<any> = ref({ audio: true, video: true })
+  const errorFormMessage: Ref<string> = ref('')
 
   async function createMeeting (config: MeetingConfig) {
     try {
       const response = await useMeeting.create(config)
-      const { data } = response.data
+      const { data } = await response.json()
       meeting.value = data
     } catch (e: any) {
       console.log(e);
     }
   }
 
-  return { meeting, connected, inPreview, mediaOptions, createMeeting }
+  async function deleteMeeting () {
+    try {
+      await useMeeting.stopMeeting(meeting.value?.access_key)
+      meeting.value = undefined
+    } catch (e: any) {
+      console.log(e);
+    }
+  }
+
+  return { meeting, loading, connected, inPreview, mediaOptions, createMeeting, deleteMeeting, errorFormMessage }
 })
