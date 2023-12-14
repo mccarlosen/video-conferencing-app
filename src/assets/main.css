@@ -21,3 +21,6 @@
 .active {
 	@apply text-white bg-black;
 }
+.video {
+	@apply bg-black w-auto h-[calc(100vh_-180px)];
+}
