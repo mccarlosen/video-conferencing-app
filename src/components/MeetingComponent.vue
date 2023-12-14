@@ -1,36 +1,164 @@
 <script setup lang="ts">
+import { onMounted, ref, type Ref } from 'vue';
+import { useMeetingStore } from '@/stores/meeting';
+import eyeson, { StreamHelpers, FeatureDetector } from 'eyeson';
+import VideoComponent from './VideoComponent.vue';
+
+const meetingStore = useMeetingStore()
+const emit = defineEmits(['onEndMeeting'])
+const loading: Ref<boolean> = ref(false)
+const localStream: Ref<any> = ref(null)
+const remoteStream: Ref<any> = ref(null)
+const audio: Ref<any> = ref(meetingStore.mediaOptions.audio)
+const video: Ref<any> = ref(meetingStore.mediaOptions.video)
+const screen: Ref<boolean> = ref(false)
+const settingsDialog: Ref<boolean> = ref(false)
+const sfuMode: Ref<boolean> = ref(false)
+const solo: Ref<boolean> = ref(false)
+const hasPresenter: Ref<boolean> = ref(false)
+const hasMutedVideoPeers: Ref<boolean> = ref(false)
+const canScreenCapture: Ref<boolean> = ref(FeatureDetector.canScreenCapture())
+
+function handleEvent(event: any) {
+	const { type } = event;
+	console.debug(type, event);
+	if (type === 'presentation_ended') {
+		eyeson.send({
+			type: 'start_stream',
+			audio: audio.value,
+			video: video.value
+		});
+		screen.value = false;
+	}
+	else if (type === 'accept') {
+		localStream.value = event.localStream,
+		remoteStream.value = event.remoteStream
+		loading.value = false
+	}
+	else if (type === 'stream_update') {
+		if (event.localStream) {
+			localStream.value = event.localStream
+		}
+		if (event.stream) {
+			remoteStream.value = event.stream
+		}
+	}
+	else if (type === 'podium') {
+		solo.value = event.solo
+		hasPresenter.value = event.hasPresenter
+		hasMutedVideoPeers.value = event.hasMutedVideoPeers
+	}
+	else if (type === 'remote_description_update') {
+		sfuMode.value = event.update.sfu
+	}
+	else if (type === 'warning') {
+		console.log({ title: `Warning: ${event.name}`, icon: 'warning' });
+	}
+	else if (type === 'error') {
+		console.log({ title: `Error: ${event.name}`, icon: 'error' });
+		// this.endSession();
+	}
+	else if (type === 'exit') {
+		console.log({ title: 'Meeting has ended' });
+		// this.endSession();
+	}
+	else {
+		console.debug('[App]', 'Ignore received event:', event.type);
+	}
+}
+
+onMounted(() => {
+	loading.value = true
+	eyeson.onEvent(handleEvent);
+	eyeson.join({ audio, video });
+})
+
+function toggleAudio() {
+	const audioEnabled = !audio.value;
+	StreamHelpers.toggleAudio(localStream.value, audioEnabled);
+	audio.value = audioEnabled
+}
+
+function toggleVideo() {
+	const videoEnabled = !video.value;
+	eyeson.send({
+		type: 'change_stream',
+		stream: localStream,
+		video: videoEnabled,
+		audio: audio
+	});
+	video.value = videoEnabled
+}
+
+function toggleScreen() {
+	if (!screen.value) {
+		eyeson.send({
+			type: 'start_screen_capture',
+			audio: audio.value,
+			screenStream: null,
+			screen: true
+		});
+		screen.value = true
+	} else {
+		eyeson.send({ type: 'stop_presenting' });
+	}
+}
+
+// end meeting
+function onEndMeeting() {
+	emit('onEndMeeting')
+}
 </script>
 <template>
-	<div class="flex-1 py-5">
-		<div class="flex items-center gap-x-5">
-			<div class="space-y-4">
-				<div class="w-full font-bold text-2xl text-left">
-					Here going to show the meeting name
-				</div>
-				<div class="bg-gradient-to-tr from-c1-500 via-c1-700 to-c1-600  overflow-hidden rounded-md shadow shadow-gray-500 p-[2px]">
-					<video class="w-full h-full rounded overflow-hidden" autoplay>
-						<source src="../assets/big_buck_bunny_720p_stereo.ogg" type="video/ogg">
-						Your browser does not support HTML video.
-					</video>
+	<div class="flex-1 flex justify-center py-5">
+		<svg v-if="loading" class="animate-spin w-10 h-10 fill-c1-300 mr-2 text-c1-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+			<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+			<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+		</svg>
+		<div v-else class="w-full flex items-center gap-x-5">
+			<div class="w-full space-y-4">
+				<div class="font-bold text-2xl text-left" v-text="meetingStore.meeting?.room.name"></div>
+				<div class="w-full flex justify-center bg-black rounded overflow-hidden shadow">
+					<template v-if="solo && video">
+						<VideoComponent class="video" :stream="localStream" muted />
+					</template>
+					<template v-if="!solo && video">
+						<VideoComponent class="video" :stream="remoteStream" />
+					</template>
+					<template v-if="!video">
+						<div class="video flex items-center">
+							<svg v-if="!video" class="w-32 fill-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" version="1.1"><path d="M 72.218 65.663 C 65.891 68.782, 62.894 76.112, 64.442 84.687 C 65.062 88.122, 81.995 105.372, 235.311 258.753 C 328.910 352.392, 406.911 429.679, 408.647 430.503 C 412.777 432.462, 419.340 432.407, 423.619 430.377 C 430.067 427.317, 433.122 419.980, 431.558 411.313 C 430.938 407.878, 414.005 390.628, 260.689 237.247 C 167.090 143.608, 89.089 66.321, 87.353 65.497 C 83.248 63.549, 76.354 63.625, 72.218 65.663 M 186.200 113.200 C 185.540 113.860, 185 115.099, 185 115.953 C 185 118.071, 330.075 263, 332.196 263 C 333.126 263, 334.587 262, 335.443 260.777 C 336.787 258.859, 336.998 253.346, 336.983 220.527 C 336.973 199.612, 336.532 178.389, 336.003 173.365 C 333.408 148.746, 319.468 128.725, 297.805 118.508 C 284.165 112.075, 283.414 112, 232.990 112 C 198.864 112, 187.098 112.302, 186.200 113.200 M 47.500 122.242 C 42.108 124.997, 29.277 138.175, 25.179 145.165 C 23.353 148.281, 20.653 154.131, 19.179 158.165 L 16.500 165.500 16.224 253.231 C 15.914 351.723, 15.646 347.540, 23.238 363 C 29.132 375.002, 41.001 386.870, 53 392.760 C 68.391 400.315, 62.496 399.969, 175.936 399.985 C 285.338 400.001, 282.476 400.126, 295 394.796 C 301.907 391.856, 311.849 385.053, 312.573 382.770 C 313.115 381.061, 291.960 359.452, 183.861 251.302 C 112.712 180.119, 53.825 121.501, 53 121.039 C 52.043 120.503, 50.051 120.939, 47.500 122.242 M 456.690 128.039 C 454.595 128.564, 451.895 129.517, 450.690 130.156 C 446.511 132.373, 364.484 190.287, 361.360 193.225 C 359.634 194.849, 356.934 198.501, 355.360 201.339 L 352.500 206.500 352.214 254.115 C 351.939 299.791, 352.009 301.949, 353.943 307.115 C 355.052 310.077, 357.329 314.161, 359.003 316.190 C 362.292 320.178, 446.809 380.145, 452.841 382.771 C 458.897 385.408, 470.358 384.958, 477.148 381.817 C 484.010 378.642, 489.832 373.016, 493.077 366.423 L 495.500 361.500 495.500 256 L 495.500 150.500 493.077 145.577 C 486.607 132.431, 470.378 124.608, 456.690 128.039" stroke="none" fill-rule="evenodd"/></svg>
+						</div>
+					</template>
 				</div>
 			</div>
 			<div class="w-16 bg-black rounded-md px-3 py-5">
 				<div class="flex flex-col justify-center space-y-3">
-					<button class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
-						<svg class="w-6 fill-c1-400" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" viewBox="0 0 475.085 475.085" style="enable-background:new 0 0 512 512" xml:space="preserve">
+					<!-- microphone -->
+					<button @click="toggleAudio" class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
+						<svg v-if="audio" class="w-6 fill-c1-400" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" viewBox="0 0 475.085 475.085" style="enable-background:new 0 0 512 512" xml:space="preserve">
 							<path d="M237.541 328.897c25.128 0 46.632-8.946 64.523-26.83 17.888-17.884 26.833-39.399 26.833-64.525V91.365c0-25.126-8.938-46.632-26.833-64.525C284.173 8.951 262.669 0 237.541 0c-25.125 0-46.632 8.951-64.524 26.84-17.893 17.89-26.838 39.399-26.838 64.525v146.177c0 25.125 8.949 46.641 26.838 64.525 17.889 17.884 39.399 26.83 64.524 26.83z" opacity="1" data-original="#000000"></path>
 							<path d="M396.563 188.15c-3.606-3.617-7.898-5.426-12.847-5.426-4.944 0-9.226 1.809-12.847 5.426-3.613 3.616-5.421 7.898-5.421 12.845v36.547c0 35.214-12.518 65.333-37.548 90.362-25.022 25.03-55.145 37.545-90.36 37.545-35.214 0-65.334-12.515-90.365-37.545-25.028-25.022-37.541-55.147-37.541-90.362v-36.547c0-4.947-1.809-9.229-5.424-12.845-3.617-3.617-7.895-5.426-12.847-5.426s-9.235 1.809-12.85 5.426c-3.618 3.616-5.426 7.898-5.426 12.845v36.547c0 42.065 14.04 78.659 42.112 109.776 28.073 31.118 62.762 48.961 104.068 53.526v37.691h-73.089c-4.949 0-9.231 1.811-12.847 5.428-3.617 3.614-5.426 7.898-5.426 12.847 0 4.941 1.809 9.233 5.426 12.847 3.616 3.614 7.898 5.428 12.847 5.428h182.719c4.948 0 9.236-1.813 12.847-5.428 3.621-3.613 5.431-7.905 5.431-12.847 0-4.948-1.81-9.232-5.431-12.847-3.61-3.617-7.898-5.428-12.847-5.428h-73.08v-37.691c41.299-4.565 75.985-22.408 104.061-53.526 28.076-31.117 42.12-67.711 42.12-109.776v-36.547c0-4.946-1.813-9.225-5.435-12.845z" opacity="1" data-original="#000000"></path>
 						</svg>
+						<svg v-if="!audio" class="w-6 fill-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" version="1.1"><path d="M 224.951 1.485 C 216.048 3.171, 201.924 8.006, 193.500 12.254 C 173.088 22.545, 152.916 42.020, 141.474 62.481 L 137.834 68.988 141.667 73.384 C 143.775 75.802, 193.621 128.461, 252.435 190.404 C 358.335 301.939, 359.380 303.001, 360.506 300.264 C 362.672 294.997, 364.993 285.371, 366.487 275.459 C 368.752 260.431, 368.703 123.490, 366.427 108.162 C 362.309 80.426, 349.344 54.378, 330.098 35.169 C 319.553 24.643, 309.384 17.493, 295.580 10.900 C 279.530 3.233, 268.928 0.846, 249 0.414 C 237.516 0.165, 230.205 0.491, 224.951 1.485 M 74.542 66.219 C 72.364 67.483, 69.228 70.445, 67.572 72.802 C 63.438 78.683, 62.722 88.575, 65.969 94.939 C 67.200 97.351, 80.241 111.903, 95.993 128.440 L 123.842 157.676 124.266 215.088 C 124.737 278.715, 124.852 279.971, 132.096 300.699 C 142.717 331.090, 165.881 357.811, 193.829 371.915 C 202.910 376.497, 219.157 381.672, 228.812 383.056 C 241.783 384.916, 263.328 383.803, 275.337 380.652 C 286.004 377.853, 302.421 370.482, 311.072 364.606 L 316.500 360.920 323.318 368.025 C 328.785 373.722, 329.907 375.407, 328.977 376.527 C 326.896 379.035, 311.861 388.194, 303.588 391.994 C 293.517 396.620, 282.056 400.382, 271 402.690 C 258.315 405.339, 232.907 405.078, 219.266 402.159 C 163.284 390.179, 120.201 345.646, 108.100 287.251 C 106.946 281.682, 105.617 270.836, 105.146 263.148 C 104.381 250.660, 104.005 248.685, 101.618 244.612 C 98.701 239.634, 92.789 235.567, 86.909 234.493 C 78.604 232.976, 68.686 239.017, 65.414 247.586 C 61.995 256.539, 64.944 288.994, 71.132 310.500 C 91.347 380.769, 146.502 432.768, 214.011 445.206 L 226 447.415 226 458.208 L 226 469 203.750 469.022 C 184.393 469.041, 180.979 469.281, 177.491 470.865 C 172.599 473.088, 167.631 478.557, 165.991 483.526 C 162.864 493.003, 167.502 505.233, 175.907 509.672 L 180.315 512 246.197 512 C 308.990 512, 312.254 511.911, 315.790 510.097 C 330.005 502.807, 331.303 481.787, 318.112 472.509 L 313.834 469.500 290.417 469.199 L 267 468.897 267 458.182 L 267 447.468 278.638 445.229 C 301.768 440.780, 324.176 431.524, 343.500 418.437 C 349.550 414.340, 355.782 409.978, 357.349 408.744 L 360.197 406.500 363.349 410.093 C 365.082 412.070, 377.670 425.421, 391.323 439.764 C 417.080 466.822, 419.765 469, 427.371 469 C 439.081 469, 448 459.606, 448 447.272 C 448 442.981, 447.371 440.163, 445.750 437.197 C 443.371 432.844, 98.950 69.324, 94.346 66.307 C 92.653 65.198, 89.223 64.430, 85.079 64.234 C 79.665 63.976, 77.799 64.328, 74.542 66.219 M 401.637 235.412 C 396.875 237.175, 392.446 241.277, 389.846 246.332 C 388.335 249.271, 387.664 253.506, 386.968 264.484 C 385.926 280.928, 383.554 292.978, 378.354 308.242 L 374.695 318.985 380.040 324.742 C 382.979 327.909, 389.828 335.115, 395.259 340.756 L 405.133 351.012 409.968 340.756 C 419.959 319.561, 425.952 296.314, 428.115 270.362 C 429.437 254.514, 428.719 249.181, 424.426 242.926 C 419.639 235.954, 409.345 232.559, 401.637 235.412" stroke="none" fill-rule="evenodd"/></svg>
 					</button>
-					<button class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
-						<svg class="w-6 fill-c1-400" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" viewBox="0 0 467.968 467.968" style="enable-background:new 0 0 512 512" xml:space="preserve"><g><path d="M264.704 96.512H51.2c-28.16 0-51.2 23.04-51.2 51.2v172.544c0 28.16 23.04 51.2 51.2 51.2h213.504c28.16 0 51.2-23.04 51.2-51.2V147.712c0-28.672-23.04-51.2-51.2-51.2zM430.08 124.672c-3.072.512-6.144 2.048-8.704 3.584l-79.872 46.08V293.12l80.384 46.08c14.848 8.704 33.28 3.584 41.984-11.264 2.56-4.608 4.096-9.728 4.096-15.36V154.368c0-18.944-17.92-34.304-37.888-29.696z" opacity="1" data-original="#000000"></path></g></svg>
+					<!--/ microphone -->
+					<!-- camera -->
+					<button @click="toggleVideo" class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
+						<svg v-if="video" class="w-6 fill-c1-400" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" viewBox="0 0 467.968 467.968" style="enable-background:new 0 0 512 512" xml:space="preserve"><g><path d="M264.704 96.512H51.2c-28.16 0-51.2 23.04-51.2 51.2v172.544c0 28.16 23.04 51.2 51.2 51.2h213.504c28.16 0 51.2-23.04 51.2-51.2V147.712c0-28.672-23.04-51.2-51.2-51.2zM430.08 124.672c-3.072.512-6.144 2.048-8.704 3.584l-79.872 46.08V293.12l80.384 46.08c14.848 8.704 33.28 3.584 41.984-11.264 2.56-4.608 4.096-9.728 4.096-15.36V154.368c0-18.944-17.92-34.304-37.888-29.696z" opacity="1" data-original="#000000"></path></g></svg>
+						<svg v-if="!video" class="w-6 fill-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" version="1.1"><path d="M 72.218 65.663 C 65.891 68.782, 62.894 76.112, 64.442 84.687 C 65.062 88.122, 81.995 105.372, 235.311 258.753 C 328.910 352.392, 406.911 429.679, 408.647 430.503 C 412.777 432.462, 419.340 432.407, 423.619 430.377 C 430.067 427.317, 433.122 419.980, 431.558 411.313 C 430.938 407.878, 414.005 390.628, 260.689 237.247 C 167.090 143.608, 89.089 66.321, 87.353 65.497 C 83.248 63.549, 76.354 63.625, 72.218 65.663 M 186.200 113.200 C 185.540 113.860, 185 115.099, 185 115.953 C 185 118.071, 330.075 263, 332.196 263 C 333.126 263, 334.587 262, 335.443 260.777 C 336.787 258.859, 336.998 253.346, 336.983 220.527 C 336.973 199.612, 336.532 178.389, 336.003 173.365 C 333.408 148.746, 319.468 128.725, 297.805 118.508 C 284.165 112.075, 283.414 112, 232.990 112 C 198.864 112, 187.098 112.302, 186.200 113.200 M 47.500 122.242 C 42.108 124.997, 29.277 138.175, 25.179 145.165 C 23.353 148.281, 20.653 154.131, 19.179 158.165 L 16.500 165.500 16.224 253.231 C 15.914 351.723, 15.646 347.540, 23.238 363 C 29.132 375.002, 41.001 386.870, 53 392.760 C 68.391 400.315, 62.496 399.969, 175.936 399.985 C 285.338 400.001, 282.476 400.126, 295 394.796 C 301.907 391.856, 311.849 385.053, 312.573 382.770 C 313.115 381.061, 291.960 359.452, 183.861 251.302 C 112.712 180.119, 53.825 121.501, 53 121.039 C 52.043 120.503, 50.051 120.939, 47.500 122.242 M 456.690 128.039 C 454.595 128.564, 451.895 129.517, 450.690 130.156 C 446.511 132.373, 364.484 190.287, 361.360 193.225 C 359.634 194.849, 356.934 198.501, 355.360 201.339 L 352.500 206.500 352.214 254.115 C 351.939 299.791, 352.009 301.949, 353.943 307.115 C 355.052 310.077, 357.329 314.161, 359.003 316.190 C 362.292 320.178, 446.809 380.145, 452.841 382.771 C 458.897 385.408, 470.358 384.958, 477.148 381.817 C 484.010 378.642, 489.832 373.016, 493.077 366.423 L 495.500 361.500 495.500 256 L 495.500 150.500 493.077 145.577 C 486.607 132.431, 470.378 124.608, 456.690 128.039" stroke="none" fill-rule="evenodd"/></svg>
 					</button>
-					<button class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
-						<svg class="w-6 fill-[#E8E8E8]" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" viewBox="0 0 134 134" style="enable-background:new 0 0 512 512" xml:space="preserve" fill-rule="evenodd"><g><path d="M37.5 100H20.833c-6.903 0-12.5-5.596-12.5-12.5V33.333c0-6.903 5.597-12.5 12.5-12.5H112.5c6.904 0 12.5 5.597 12.5 12.5V87.5c0 6.904-5.596 12.5-12.5 12.5H95.833v3.247a9.253 9.253 0 0 1-9.253 9.253H46.753a9.253 9.253 0 0 1-9.253-9.253zm8.333 0v3.247c0 .508.412.92.92.92H86.58a.92.92 0 0 0 .92-.92V100zM62.5 55.893l-4.672 4.672c-1.626 1.626-4.267 1.626-5.893 0s-1.626-4.267 0-5.893L63.72 42.887a4.168 4.168 0 0 1 5.893 0l11.785 11.785c1.626 1.626 1.626 4.267 0 5.893s-4.266 1.626-5.892 0l-4.673-4.672V75c0 2.3-1.867 4.167-4.166 4.167A4.169 4.169 0 0 1 62.5 75z" opacity="1" data-original="#000000"></path></g></svg>
+					<!--/ microphone -->
+					<!-- share -->
+					<button @click="toggleScreen" class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
+						<svg class="w-6" :class="{'fill-[#E8E8E8]': !screen, 'fill-green-400': screen}" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" viewBox="0 0 134 134" style="enable-background:new 0 0 512 512" xml:space="preserve" fill-rule="evenodd"><g><path d="M37.5 100H20.833c-6.903 0-12.5-5.596-12.5-12.5V33.333c0-6.903 5.597-12.5 12.5-12.5H112.5c6.904 0 12.5 5.597 12.5 12.5V87.5c0 6.904-5.596 12.5-12.5 12.5H95.833v3.247a9.253 9.253 0 0 1-9.253 9.253H46.753a9.253 9.253 0 0 1-9.253-9.253zm8.333 0v3.247c0 .508.412.92.92.92H86.58a.92.92 0 0 0 .92-.92V100zM62.5 55.893l-4.672 4.672c-1.626 1.626-4.267 1.626-5.893 0s-1.626-4.267 0-5.893L63.72 42.887a4.168 4.168 0 0 1 5.893 0l11.785 11.785c1.626 1.626 1.626 4.267 0 5.893s-4.266 1.626-5.892 0l-4.673-4.672V75c0 2.3-1.867 4.167-4.166 4.167A4.169 4.169 0 0 1 62.5 75z" opacity="1" data-original="#000000"></path></g></svg>
 					</button>
-					<button class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2">
+					<!--/ share -->
+					<!-- endcall -->
+					<button @click="onEndMeeting" class="bg-gray-800 w-[40px] h-[40px] rounded-lg p-2 transition hover:bg-red-500" title="Terminar llamada">
 						<svg class="w-6 fill-[#E8E8E8]" version="1.1" x="0" y="0" viewBox="0 0 20.003321 8.9971783" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"><g transform="translate(-1.9978203,-7.0002496)"><path d="m 21.3,15.38 a 1.378,1.378 0 0 1 -1.5,0.572 l -2.724,-0.7 a 1.886,1.886 0 0 1 -1.38,-2.2 l 0.249,-1.228 a 11.426,11.426 0 0 0 -7.86,-0.006 l 0.242,1.238 A 1.887,1.887 0 0 1 6.94,15.252 L 4.2,15.945 A 1.383,1.383 0 0 1 2.712,15.379 4.579,4.579 0 0 1 4.1,9.072 16.039,16.039 0 0 1 19.892,9.085 4.584,4.584 0 0 1 21.3,15.38 Z" opacity="1" data-original="#000000" /></g></svg>
 					</button>
+					<!-- /endcall -->
 				</div>
 			</div>
 		</div>
