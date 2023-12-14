@@ -3,6 +3,7 @@ import { ref, type Ref, computed } from 'vue';
 import useVuelidate from '@vuelidate/core';
 import { required, maxLength, minLength } from '@vuelidate/validators';
 import { useRouter } from 'vue-router';
+import ErrorMessage from './ErrorMessage.vue';
 
 const accessKey: Ref<string> = ref('')
 const rules = computed(() => ({
@@ -25,6 +26,7 @@ const submitForm = async () => {
 
 <template>
 	<form @submit.prevent="submitForm" class="space-y-5">
+		<ErrorMessage />
 		<div class="flex flex-col">
 			<label for="access-key" class="mb-2 inline-flex items-center">
 				Your Meeting Access Key 
