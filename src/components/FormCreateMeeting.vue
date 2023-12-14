@@ -4,6 +4,7 @@ import { useVuelidate } from '@vuelidate/core'
 import { required, maxLength } from '@vuelidate/validators'
 import { useMeetingStore } from '@/stores/meeting';
 import { useRouter } from 'vue-router'
+import ErrorMessage from './ErrorMessage.vue';
 
 const router = useRouter()
 const sendingForm: Ref<boolean> = ref(false)
@@ -41,6 +42,7 @@ const submitForm = async () => {
 
 <template>
   <form @submit.prevent="submitForm" class="space-y-5">
+    <ErrorMessage />
     <div class="flex flex-col">
       <label for="name-for-meeting" class="mb-2">Your Name</label>
       <input v-model="userName" @blur="v$.userName.$touch" type="text" id="name-for-meeting" class="input-field mb-2" :class="{error: v$.userName.$error}"  placeholder="Example: John Wick">
