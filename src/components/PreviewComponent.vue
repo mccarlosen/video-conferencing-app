@@ -18,8 +18,12 @@ const enabledVideo: Ref<boolean> = ref(true)
 const deviceManager = useDeviceManager()
 function handleDeviceManager(event: any) {
 	const { cameras, microphones, stream, error } = event
+	console.log('camaras:', cameras);	
 	if (cameras && microphones) {
 		microphoneDevices.value = microphones?.map(useMapDeviceList)
+		if (!cameras.length) {
+			enabledVideo.value = false
+		}
 		cameraDevices.value = cameras?.map(useMapDeviceList)
 	}
 	if (stream) {
