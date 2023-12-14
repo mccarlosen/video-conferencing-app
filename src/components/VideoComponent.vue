@@ -12,6 +12,8 @@ const errorVideo = () => console.log('Enable to play video')
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 onMounted(() => {
 	const { stream } = props
+	console.log('stream:', stream);
+	
 	if (stream && video.value && !video.value.srcObject) {
 		playPromise.value = playPromise.value.then(() => {
 			video.value.srcObject = stream;
