@@ -1,12 +1,12 @@
 <template>
 	<div class="flex items-center w-full h-[70px] bg-black shadow-md fixed z-10">
-		<div class="w-full max-w-7xl mx-auto text-white">
-			<div class="flex items-center justify-between">
-				<div class="flex items-center space-x-4">
-					<div class="max-w-max">
+		<div class="w-full max-w-6xl mx-auto text-white">
+			<div class="flex items-center justify-between px-5">
+				<div class="flex items-center sm:space-x-4">
+					<div class="hidden sm:block">
 						<img src="../assets/logo.png" class="w-10" alt="Logo">
 					</div>
-					<div class="text-xl font-bold">Video Conferencing App</div>
+					<div class="text-base sm:text-xl font-bold">Video Conferencing App</div>
 				</div>
 				<div class="flex items-center space-x-4">
 					<a href="https://github.com/mccarlosen">
