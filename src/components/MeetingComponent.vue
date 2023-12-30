@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, type Ref } from 'vue';
 import { useMeetingStore } from '@/stores/meeting';
-import eyeson, { StreamHelpers, FeatureDetector } from 'eyeson';
+import eyeson, { StreamHelpers } from 'eyeson';
 import VideoComponent from './VideoComponent.vue';
 
 const meetingStore = useMeetingStore()
@@ -12,12 +12,10 @@ const remoteStream: Ref<any> = ref(null)
 const audio: Ref<any> = ref(meetingStore.mediaOptions.audio)
 const video: Ref<any> = ref(meetingStore.mediaOptions.video)
 const screen: Ref<boolean> = ref(false)
-const settingsDialog: Ref<boolean> = ref(false)
 const sfuMode: Ref<boolean> = ref(false)
 const solo: Ref<boolean> = ref(false)
 const hasPresenter: Ref<boolean> = ref(false)
 const hasMutedVideoPeers: Ref<boolean> = ref(false)
-const canScreenCapture: Ref<boolean> = ref(FeatureDetector.canScreenCapture())
 
 function handleEvent(event: any) {
 	const { type } = event;
